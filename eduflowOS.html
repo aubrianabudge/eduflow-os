@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduFlow OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --win-bg: #c0c0c0; 
+            --win-blue: #000080; 
+            --win-border-light: #ffffff;
+            --win-border-dark: #808080; 
+            --desktop-bg: #008080; /* Classic Teal */
+            --text-color: black;
+        }
+        body.dark-mode {
+            --win-bg: #2b2b2b; 
+            --win-blue: #000040; 
+            --win-border-light: #444;
+            --win-border-dark: #000; 
+            --desktop-bg: #1a1a1a; 
+            --text-color: #00ff00;
+        }
+
+        body { 
+            /* THE RETRO WALLPAPER: A tiled micro-pattern for that 90s CRT feel */
+            background-color: var(--desktop-bg); 
+            background-image: 
+                linear-gradient(45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%, rgba(0,0,0,0.05)),
+                linear-gradient(45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.05) 75%, rgba(0,0,0,0.05));
+            background-size: 4px 4px;
+            background-position: 0 0, 2px 2px;
+            
+            font-family: 'VT323', monospace; 
+            margin: 0; 
+            overflow: hidden; 
+            height: 100vh; 
+            color: var(--text-color); 
+            user-select: none; 
+            transition: background 0.3s; 
+        }
+        
+        /* CRT SCANLINE OVERLAY - Fixed pointer events so buttons work */
+        .crt::before { 
+            content: " "; 
+            display: block; 
+            position: absolute; 
+            top: 0; left: 0; bottom: 0; right: 0; 
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%); 
+            z-index: 25000; 
+            background-size: 100% 3px; 
+            pointer-events: none; 
+        }
+        
+        /* LOGIN SCREEN STYLES */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: var(--desktop-bg); z-index: 15000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .login-window {
+            width: 250px; background: var(--win-bg); border: 2px solid;
+            border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light);
+            padding: 15px; text-align: center; box-shadow: 4px 4px 0px rgba(0,0,0,1);
+        }
+
+        /* POP ANIMATION */
+        @keyframes winOpen {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .window { 
+            position: absolute; background: var(--win-bg); border: 2px solid; 
+            border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light); 
+            box-shadow: 1px 1px 0 1px #000; z-index: 10; display: none; min-width: 200px; 
+            box-sizing: border-box; animation: winOpen 0.1s ease-out; 
+        }
+        .title-bar { background: var(--win-blue); color: white; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; cursor: move; }
+        .window-body { padding: 10px; }
+        .btn-close { cursor: pointer; background: var(--win-bg); border: 1px solid #000; color: var(--text-color); font-weight: bold; padding: 0 4px; line-height: 14px; }
+
+        .taskbar { position: fixed; bottom: 0; width: 100%; height: 35px; background: var(--win-bg); border-top: 2px solid var(--win-border-light); display: none; align-items: center; padding: 0 5px; z-index: 10000; gap: 5px; box-sizing: border-box;}
+        
+        .taskbar button.active {
+            background: #e0e0e0;
+            border-color: var(--win-border-dark) var(--win-border-light) var(--win-border-light) var(--win-border-dark);
+            box-shadow: inset 1px 1px #000;
+        }
+
+        .icon { width: 75px; text-align: center; color: white; cursor: pointer; margin: 15px; float: left; text-shadow: 2px 2px #000; font-size: 14px; }
+        .icon span { font-size: 24px; }
+        
+        button { background: var(--win-bg); border: 2px solid; border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light); font-family: inherit; cursor: pointer; color: var(--text-color); padding: 2px 6px; }
+        button:active { border-color: var(--win-border-dark) var(--win-border-light) var(--win-border-light) var(--win-border-dark); }
+        input, textarea, select { font-family: inherit; margin-bottom: 5px; width: 100%; box-sizing: border-box; background: white; color: black; border: 2px inset; }
+
+        #calc-display { background: #fff; border: 2px inset; text-align: right; padding: 5px; font-size: 20px; margin-bottom: 10px; color: #000; min-height: 25px; overflow: hidden; }
+        .calc-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        
+        .ms-grid { display: grid; grid-template-columns: repeat(8, 22px); gap: 1px; background: #888; border: 2px inset; }
+        .ms-cell { width: 22px; height: 22px; background: #c0c0c0; text-align: center; cursor: pointer; border: 1px solid #eee; line-height: 22px; color: black;}
+
+        #context-menu { position: absolute; background: var(--win-bg); border: 2px solid; border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light); width: 120px; z-index: 20000; display: none; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+        .menu-item { padding: 5px 10px; cursor: pointer; font-size: 14px; color: black; }
+        .menu-item:hover { background: var(--win-blue); color: white; }
+
+        .status-bar { font-size: 12px; border-top: 1px solid var(--win-border-dark); padding-top: 5px; margin-top: 5px; color: #555; display: flex; justify-content: space-between; }
+        
+        .task-item { border-bottom: 1px solid #888; padding: 8px 4px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: black; background: #fff; margin-bottom: 2px; }
+        .task-header { display: flex; justify-content: space-between; align-items: center; }
+        .task-meta { font-size: 10px; color: #666; }
+        .completed { text-decoration: line-through; opacity: 0.6; background: #dcdcdc; }
+    </style>
+</head>
+<body class="crt" oncontextmenu="showContextMenu(event)">
+
+<div id="bios-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000;color:#00ff00;z-index:30000;padding:40px; box-sizing: border-box; overflow: hidden;"></div>
+
+<div id="login-screen">
+    <div class="login-window">
+        <div style="background: var(--win-blue); color: white; margin: -15px -15px 15px -15px; padding: 4px;">SYSTEM_AUTH</div>
+        <div style="font-size: 40px; margin-bottom: 10px;">👤</div>
+        <div style="margin-bottom: 5px; font-weight: bold; color: black;">User: Admin</div>
+        <input type="password" id="login-input" placeholder="Pass: 1234" style="text-align: center;" onkeydown="if(event.key==='Enter') attemptLogin()">
+        <button onclick="attemptLogin()" style="width: 100%; margin-top: 5px; font-weight: bold;">UNLOCK</button>
+        <div id="login-error" style="color: red; font-size: 12px; margin-top: 5px; height: 14px;"></div>
+    </div>
+</div>
+
+<div id="context-menu">
+    <div class="menu-item" onclick="restartSystem()">Refresh</div>
+    <div class="menu-item" onclick="openWin('wp-win')">Wallpaper</div>
+    <div class="menu-item" onclick="openWin('notepad-win')">New Note</div>
+</div>
+
+<div id="desktop" style="display:none;" onclick="hideContextMenu()">
+    <div class="icon" onclick="openWin('task-win')"><span>📂</span><br>Add_Task</div>
+    <div class="icon" onclick="openWin('view-tasks-win')"><span>📝</span><br>View_Tasks</div>
+    <div class="icon" onclick="openWin('bin-win')"><span>🗑️</span><br>Recycle_Bin</div>
+    <div class="icon" onclick="openWin('notepad-win')"><span>🖊️</span><br>Notepad</div>
+    <div class="icon" onclick="openWin('paint-win')"><span>🎨</span><br>Paint</div>
+    <div class="icon" onclick="openWin('calc-win')"><span>🧮</span><br>Calculator</div>
+    <div class="icon" onclick="openWin('term-win')"><span>📟</span><br>Terminal</div>
+    <div class="icon" onclick="openWin('mine-win')"><span>💣</span><br>Mines</div>
+
+    <div class="window" id="task-win" style="width:220px;">
+        <div class="title-bar"><span>TASK_ADD</span><button class="btn-close" onclick="closeWin('task-win')">X</button></div>
+        <div class="window-body">
+            <input type="text" id="taskName" placeholder="Task/Assignment Name">
+            <select id="taskPriority"><option value="low">Low Priority</option><option value="med">Medium Priority</option><option value="high">High Priority</option></select>
+            <input type="date" id="taskDate">
+            <button id="save-btn" onclick="addTask()" style="width:100%;">SAVE TASK</button>
+            <div id="save-status" style="font-size: 10px; color: #000080; text-align: center; margin-top: 5px; height: 12px;"></div>
+        </div>
+    </div>
+
+    <div class="window" id="view-tasks-win" style="width:280px;">
+        <div class="title-bar"><span>TASK_LIST</span><button class="btn-close" onclick="closeWin('view-tasks-win')">X</button></div>
+        <div class="window-body">
+            <div id="task-view-list" style="height:200px; overflow-y:auto; background:#eee; color:black; border:2px inset; padding:5px;"></div>
+            <button onclick="clearTasks()" style="width:100%; margin-top:5px; color:red;">CLEAR ALL</button>
+        </div>
+    </div>
+
+    <div class="window" id="task-mgr-win" style="width:220px;">
+        <div class="title-bar"><span>TASK_MANAGER</span><button class="btn-close" onclick="closeWin('task-mgr-win')">X</button></div>
+        <div class="window-body">
+            <div id="mgr-list" style="height:150px; overflow-y:auto; background:#fff; color:black; border:2px inset; padding:5px; font-size:12px;"></div>
+        </div>
+    </div>
+
+    <div class="window" id="bin-win" style="width:250px;">
+        <div class="title-bar"><span>RECYCLE_BIN</span><button class="btn-close" onclick="closeWin('bin-win')">X</button></div>
+        <div class="window-body">
+            <div id="bin-list" style="height:120px; overflow-y:auto; background:#fff; color:black; border:2px inset; padding:5px; margin-bottom:5px;"></div>
+            <button onclick="emptyBin()" style="width:100%;">EMPTY BIN</button>
+        </div>
+    </div>
+
+    <div class="window" id="notepad-win" style="width:280px;">
+        <div class="title-bar"><span>NOTEPAD</span><button class="btn-close" onclick="closeWin('notepad-win')">X</button></div>
+        <div class="window-body">
+            <input type="text" id="note-name" placeholder="file.txt">
+            <textarea id="note-content" style="height:100px;" oninput="updateNoteStats()"></textarea>
+            <div class="status-bar"><span id="note-chars">Chars: 0</span><span id="note-words">Words: 0</span></div>
+            <button onclick="saveNote()" style="width:100%; margin-top:5px;">SAVE</button>
+        </div>
+    </div>
+
+    <div class="window" id="calc-win" style="width:200px;">
+        <div class="title-bar"><span>CALC</span><button class="btn-close" onclick="closeWin('calc-win')">X</button></div>
+        <div class="window-body">
+            <div id="calc-display">0</div>
+            <div class="calc-btns">
+                <button onclick="calcNum('7')">7</button><button onclick="calcNum('8')">8</button><button onclick="calcNum('9')">9</button><button onclick="calcOp('/')">/</button>
+                <button onclick="calcNum('4')">4</button><button onclick="calcNum('5')">5</button><button onclick="calcNum('6')">6</button><button onclick="calcOp('*')">*</button>
+                <button onclick="calcNum('1')">1</button><button onclick="calcNum('2')">2</button><button onclick="calcNum('3')">3</button><button onclick="calcOp('-')">-</button>
+                <button onclick="calcNum('0')">0</button><button onclick="calcClear()">C</button><button onclick="calcRes()">=</button><button onclick="calcOp('+')">+</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="window" id="term-win" style="width:350px;">
+        <div class="title-bar"><span>CMD.EXE</span><button class="btn-close" onclick="closeWin('term-win')">X</button></div>
+        <div class="window-body" style="background: black;">
+            <div id="term-out" style="height: 150px; overflow-y: auto; color:#00ff00; padding:5px; font-size:14px;">EduFlow OS [V5.2 Platinum]<br>Ready. Type 'help'.</div>
+            <div style="display:flex; color:#00ff00;">C:\&gt;<input type="text" id="term-in" onkeydown="if(event.key==='Enter') runCmd()" autocomplete="off" style="background:black; color:#00ff00; border:none; outline:none;"></div>
+        </div>
+    </div>
+
+    <div class="window" id="paint-win">
+        <div class="title-bar"><span>PAINT</span><button class="btn-close" onclick="closeWin('paint-win')">X</button></div>
+        <div class="window-body"><canvas id="paint-canvas" width="200" height="150" style="background:white; border:1px solid #000;"></canvas><br><input type="color" id="paint-color"><button onclick="clearPaint()">CLR</button></div>
+    </div>
+
+    <div class="window" id="mine-win">
+        <div class="title-bar"><span>MINES</span><button class="btn-close" onclick="closeWin('mine-win')">X</button></div>
+        <div class="window-body"><div id="mine-grid" class="ms-grid"></div></div>
+    </div>
+
+    <div class="window" id="wp-win" style="width:200px;">
+        <div class="title-bar"><span>THEMES</span><button class="btn-close" onclick="closeWin('wp-win')">X</button></div>
+        <div class="window-body" style="text-align:center;"><button onclick="setWP('#008080')">Teal</button><button onclick="setWP('#000')">Black</button><button onclick="toggleDarkMode()">Dark Mode</button></div>
+    </div>
+</div>
+
+<div class="taskbar" id="main-taskbar">
+    <button onclick="toggleDarkMode()" style="font-weight:bold; background: #c0c0c0; border: 2px outset;">START</button>
+    <button onclick="restartSystem()" style="font-weight:bold; background: #c0c0c0; border: 2px outset; color: #800000;">RESTART</button>
+    <button id="btn-task-mgr" onclick="toggleWin('task-mgr-win', this)" style="display: flex; align-items: center; gap: 4px;">📟 Task Mgr</button>
+    <div style="margin-left:auto; border: 2px inset; padding: 2px 10px; background: #eee; color: #000; font-weight: bold;"><span id="clock">00:00</span></div>
+</div>
+
+<script>
+    // CORE DATA ARRAYS
+    let files = JSON.parse(localStorage.getItem('sysFiles')) || [];
+    let trash = JSON.parse(localStorage.getItem('sysTrash')) || [];
+    let tasks = JSON.parse(localStorage.getItem('sysTasks')) || [];
+    let zIndex = 100;
+
+    // BIOS SEQUENCE
+    const bios = document.getElementById('bios-screen');
+    const logs = [
+        "EDUFLOW BIOS V5.22.0...",
+        "CPU: Intel(R) Core(TM) i9-2026 @ 5.00GHz",
+        "MEMORY CHECK: 65536KB OK",
+        "DETECTING DRIVES... HDD-0: PLATINUM_ULTIMATE OK",
+        "MOUNTING FILE SYSTEM...",
+        "INITIALIZING CORE SERVICES...",
+        "LOADER: DECOMPRESSING KERNEL...",
+        "STATUS: SYSTEM_READY_FOR_AUTH",
+        "BOOTING..."
+    ];
+    let bIdx = 0;
+
+    function runBios() {
+        document.getElementById('desktop').style.display='none';
+        document.getElementById('main-taskbar').style.display='none';
+        document.getElementById('login-screen').style.display='none';
+        bios.style.display = 'block';
+        bios.innerHTML = "";
+        bIdx = 0;
+        
+        function nextLog() {
+            if(bIdx < logs.length) {
+                bios.innerHTML += logs[bIdx++] + "<br>";
+                setTimeout(nextLog, 200 + Math.random() * 400);
+            } else {
+                setTimeout(() => {
+                    bios.style.display='none';
+                    document.getElementById('login-screen').style.display='flex';
+                    document.getElementById('login-input').focus();
+                }, 800);
+            }
+        }
+        nextLog();
+    }
+
+    // LOGIN LOGIC
+    function attemptLogin() {
+        const input = document.getElementById('login-input');
+        const error = document.getElementById('login-error');
+        if(input.value === "1234") {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('desktop').style.display = 'block';
+            document.getElementById('main-taskbar').style.display = 'flex';
+            input.value = "";
+            error.innerText = "";
+            makeDraggable();
+            updateTaskView();
+        } else {
+            error.innerText = "INVALID CREDENTIALS";
+            input.value = "";
+            input.focus();
+        }
+    }
+
+    // RESTART SYSTEM
+    function restartSystem() {
+        document.querySelectorAll('.window').forEach(w => w.style.display = 'none');
+        runBios();
+    }
+
+    // WINDOW CONTROLS
+    function openWin(id) { 
+        const win = document.getElementById(id);
+        if (win.style.display !== 'block') {
+            const openWindows = document.querySelectorAll('.window[style*="display: block"]').length;
+            win.style.top = (40 + (openWindows * 25)) + "px";
+            win.style.left = (40 + (openWindows * 25)) + "px";
+        }
+        win.style.display = 'block'; 
+        win.style.zIndex = ++zIndex; 
+        const input = win.querySelector('input, textarea');
+        if(input) input.focus();
+        if(id === 'view-tasks-win') updateTaskView();
+        if(id === 'mine-win') initMinesweeper();
+        if(id === 'bin-win') updateBinList();
+        updateTaskMgr(); 
+    }
+
+    function closeWin(id) { 
+        document.getElementById(id).style.display = 'none'; 
+        if(id === 'task-mgr-win') document.getElementById('btn-task-mgr').classList.remove('active');
+        updateTaskMgr(); 
+    }
+
+    function toggleWin(id, btn) {
+        const win = document.getElementById(id);
+        if (win.style.display === 'block') {
+            closeWin(id);
+            if(btn) btn.classList.remove('active');
+        } else {
+            openWin(id);
+            if(btn) btn.classList.add('active');
+        }
+    }
+
+    function showContextMenu(e) { e.preventDefault(); const m = document.getElementById('context-menu'); m.style.display='block'; m.style.left=e.pageX+'px'; m.style.top=e.pageY+'px'; }
+    function hideContextMenu() { document.getElementById('context-menu').style.display='none'; }
+
+    function updateTaskMgr() {
+        const mgrList = document.getElementById('mgr-list');
+        const allWindows = document.querySelectorAll('.window');
+        mgrList.innerHTML = "";
+        allWindows.forEach(win => {
+            if (win.style.display === 'block') {
+                const winName = win.querySelector('.title-bar span').innerText;
+                mgrList.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ccc; padding:2px 0;">
+                        <span>${winName}</span>
+                        <button onclick="closeWin('${win.id}');" style="font-size:10px; color:red;">KILL</button>
+                    </div>`;
+            }
+        });
+        if (!mgrList.innerHTML) mgrList.innerHTML = "No active processes.";
+    }
+
+    function updateBinList() {
+        document.getElementById('bin-list').innerHTML = trash.map((f, i) => `
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px;">
+                <span>🗑️ ${f.name}</span>
+                <button onclick="restoreFile(${i})" style="font-size:10px;">RESTORE</button>
+            </div>`).join('') || "Empty Bin";
+    }
+
+    function addTask() {
+        const nameInput = document.getElementById('taskName');
+        const prioInput = document.getElementById('taskPriority');
+        const dateInput = document.getElementById('taskDate');
+        const status = document.getElementById('save-status');
+        const saveBtn = document.getElementById('save-btn');
+        if(!nameInput.value.trim()) {
+            status.style.color = "red";
+            status.innerText = "Error: No Name";
+            return;
+        }
+        const newTask = { name: nameInput.value.trim(), prio: prioInput.value, date: dateInput.value || "No Date", done: false };
+        tasks.push(newTask);
+        saveAll(); 
+        updateTaskView();
+        status.style.color = "blue";
+        status.innerText = "✓ Added to View_Tasks";
+        saveBtn.innerText = "SAVED!";
+        setTimeout(() => { nameInput.value = ""; saveBtn.innerText = "SAVE TASK"; status.innerText = ""; }, 1500);
+    }
+
+    function toggleTask(i) { tasks[i].done = !tasks[i].done; saveAll(); updateTaskView(); }
+    function deleteTask(i) { tasks.splice(i, 1); saveAll(); updateTaskView(); }
+    function clearTasks() { if(confirm("Clear all assignments?")) { tasks = []; saveAll(); updateTaskView(); } }
+
+    function updateTaskView() {
+        const listContainer = document.getElementById('task-view-list');
+        if (!listContainer) return;
+        if (tasks.length === 0) { listContainer.innerHTML = "<div style='text-align:center; padding:20px; color:#888;'>No assignments to do.</div>"; return; }
+        listContainer.innerHTML = tasks.map((t, i) => `
+            <div class="task-item ${t.done?'completed':''}">
+                <div class="task-header"><strong>${t.name}</strong><button onclick="toggleTask(${i})">${t.done?'Undo':'Done'}</button></div>
+                <div class="task-meta">Priority: ${t.prio.toUpperCase()} | Due: ${t.date}<span onclick="deleteTask(${i})" style="color:red; cursor:pointer; float:right; text-decoration:underline;">Delete</span></div>
+            </div>`).join('');
+    }
+
+    function saveAll() {
+        try {
+            localStorage.setItem('sysFiles', JSON.stringify(files));
+            localStorage.setItem('sysTasks', JSON.stringify(tasks));
+            localStorage.setItem('sysTrash', JSON.stringify(trash));
+        } catch (e) { console.error("Storage error"); }
+    }
+
+    function updateNoteStats() {
+        const text = document.getElementById('note-content').value;
+        document.getElementById('note-chars').innerText = "Chars: " + text.length;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        document.getElementById('note-words').innerText = "Words: " + words;
+    }
+
+    function saveNote() {
+        const name = document.getElementById('note-name').value || "unnamed.txt";
+        files.push({name: name, content: document.getElementById('note-content').value});
+        saveAll();
+        alert("Note saved to internal storage.");
+    }
+
+    function runCmd() {
+        const i = document.getElementById('term-in'), o = document.getElementById('term-out');
+        const cmd = i.value.toLowerCase().trim();
+        o.innerHTML += `<br>C:\&gt; ${cmd}`;
+        if(cmd === 'whoami') o.innerHTML += "<br>User: Admin | System: Platinum 5.2";
+        else if(cmd === 'help') o.innerHTML += "<br>Available: WHOAMI, CLS, HELP, RESTART";
+        else if(cmd === 'cls') o.innerHTML = "EduFlow OS [V5.2 Platinum]";
+        else if(cmd === 'restart') restartSystem();
+        else o.innerHTML += `<br>'${cmd}' not recognized.`;
+        i.value = ""; o.scrollTop = o.scrollHeight;
+    }
+
+    function setWP(c) { document.body.style.background = c; }
+    function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+    
+    function makeDraggable() {
+        document.querySelectorAll('.window').forEach(win => {
+            win.onmousedown = () => win.style.zIndex = ++zIndex;
+            let tb = win.querySelector('.title-bar');
+            tb.onmousedown = (e) => {
+                let ox = e.clientX - win.offsetLeft, oy = e.clientY - win.offsetTop;
+                function move(e) { win.style.left = (e.clientX-ox)+'px'; win.style.top = (e.clientY-oy)+'px'; }
+                document.addEventListener('mousemove', move);
+                document.onmouseup = () => document.removeEventListener('mousemove', move);
+            };
+        });
+    }
+
+    let curV = "0", pV = null, opr = null, rst = false;
+    function calcNum(n) { if(curV==="0"||rst){curV=n;rst=false;}else{curV+=n;} document.getElementById('calc-display').innerText = curV; }
+    function calcOp(o) { if(opr && !rst) calcRes(); pV=curV; opr=o; rst=true; }
+    function calcRes() { if(!opr||rst)return; let a=parseFloat(pV), b=parseFloat(curV), res=0; if(opr==='+')res=a+b; if(opr==='-')res=a-b; if(opr==='*')res=a*b; if(opr==='/')res=a/(b||1); curV=String(parseFloat(res.toFixed(8))); opr=null; rst=true; document.getElementById('calc-display').innerText = curV; }
+    function calcClear() { curV="0"; pV=null; opr=null; rst=false; document.getElementById('calc-display').innerText = "0"; }
+
+    function initMinesweeper() {
+        let grid = document.getElementById('mine-grid'); grid.innerHTML = "";
+        for(let i=0; i<64; i++) {
+            let c = document.createElement('div'); c.className="ms-cell"; c.dataset.b = Math.random()<0.15;
+            c.onclick = function() { if(this.dataset.b==="true"){this.innerHTML="💣";alert("BOOM!");initMinesweeper();}else{this.innerHTML="0";this.style.background="#fff";}};
+            grid.appendChild(c);
+        }
+    }
+
+    const canvas = document.getElementById('paint-canvas'); const ctx = canvas.getContext('2d'); let drawing = false;
+    canvas.onmousedown = (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+    canvas.onmouseup = () => drawing = false;
+    canvas.onmousemove = (e) => { if(drawing) { ctx.strokeStyle = document.getElementById('paint-color').value; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } };
+    function clearPaint() { ctx.clearRect(0,0,200,150); }
+
+    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }, 1000);
+
+    // Initial Launch
+    runBios();
+</script>
+</body>
+</html>
