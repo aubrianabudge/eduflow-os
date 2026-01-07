@@ -86,13 +86,12 @@
         #calc-display { background: #fff; border: 2px inset; text-align: right; padding: 5px; font-size: 20px; margin-bottom: 5px; min-height: 30px; color: black; }
         .calc-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
 
-        .task-item { border-bottom: 1px solid #888; padding: 8px 4px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: black; background: #fff; margin-bottom: 2px; }
-        .completed { text-decoration: line-through; opacity: 0.6; background: #dcdcdc; }
         .minimized-tab { padding: 2px 10px; background: #c0c0c0; border: 2px outset; font-size: 12px; cursor: pointer; color: black; min-width: 60px; text-align: center; }
-        .minimized-tab:active { border-style: inset; }
 
         .ms-grid { display: grid; grid-template-columns: repeat(8, 22px); gap: 1px; background: #888; border: 2px inset; }
-        .ms-cell { width: 22px; height: 22px; background: #c0c0c0; text-align: center; cursor: pointer; border: 1px solid #eee; line-height: 22px; }
+        .ms-cell { width: 22px; height: 22px; background: #c0c0c0; text-align: center; cursor: pointer; border: 1px solid #eee; line-height: 22px; font-weight: bold; }
+        .ms-cell.revealed { background: #fff; }
+        .ms-cell.bomb { background: #ff0000; }
 
         #calendar-popup {
             position: absolute; bottom: 40px; right: 10px; width: 200px; background: var(--win-bg);
@@ -108,10 +107,7 @@
         .tm-meter-text { position: absolute; width: 100%; text-align: center; color: white; font-size: 12px; line-height: 18px; mix-blend-mode: difference; }
 
         .profile-pic { width: 60px; height: 60px; background: #888; border: 2px inset; display: inline-block; font-size: 40px; line-height: 60px; overflow: hidden; }
-
-        /* Custom Scrollbar for the retro feel */
-        ::-webkit-scrollbar { width: 16px; background: #dfdfdf; }
-        ::-webkit-scrollbar-thumb { background: #c0c0c0; border: 2px outset #fff; }
+        .kill-btn { background: #ff4444 !important; color: white !important; font-size: 10px; padding: 1px 4px; float: right; }
     </style>
 </head>
 <body class="crt" oncontextmenu="showContextMenu(event)">
@@ -134,9 +130,11 @@
         <span id="start-avatar" style="font-size: 16px;">👤</span> <span id="start-username">EduFlow OS</span>
     </div>
     <div class="start-item" onclick="openWin('profile-win'); hideUI();"><span>👤</span> User Profile</div>
+    <div class="start-item" onclick="openWin('view-tasks-win'); hideUI();"><span>📋</span> Task Manager</div>
+    <div class="start-item" onclick="openWin('sys-info-win'); hideUI();"><span>⚙️</span> System Info</div>
+    <div class="start-item" onclick="openWin('term-win'); hideUI();"><span>📟</span> Terminal</div>
     <div class="start-item" onclick="openWin('wp-win'); hideUI();"><span>🎨</span> Appearance</div>
     <div class="start-item" onclick="openWin('explorer-win'); hideUI();"><span>📂</span> Documents</div>
-    <div class="start-item" onclick="openWin('sys-info-win'); hideUI();"><span>⚙️</span> System Info</div>
     <div class="start-item" onclick="openWin('bin-win'); hideUI();"><span>🗑️</span> Recycle Bin</div>
     <div class="start-item" onclick="openWin('run-win'); hideUI();"><span>🚀</span> Run...</div>
     <hr>
@@ -155,18 +153,15 @@
 </div>
 
 <div id="desktop" style="display:none;" onclick="hideUI()">
-    <div class="icon" onclick="openWin('task-win')"><span>📝</span><br>Add_Task</div>
-    <div class="icon" onclick="toggleTaskManager()"><span>📋</span><br>Task_Manager</div>
-    <div class="icon" onclick="openWin('explorer-win')"><span>📁</span><br>Documents</div>
-    <div class="icon" onclick="openWin('sys-info-win')"><span>⚙️</span><br>Sys_Info</div>
-    <div class="icon" onclick="openWin('notepad-win')"><span>🖊️</span><br>Notepad</div>
-    <div class="icon" onclick="openWin('calc-win')"><span>🧮</span><br>Calculator</div>
-    <div class="icon" onclick="openWin('paint-win')"><span>🎨</span><br>Paint</div>
-    <div class="icon" onclick="openWin('mine-win')"><span>💣</span><br>Mines</div>
-    <div class="icon" onclick="openWin('term-win')"><span>📟</span><br>Terminal</div>
+    <div class="icon" onclick="handleIconClick('task-win')"><span>📝</span><br>Add_Task</div>
+    <div class="icon" onclick="handleIconClick('explorer-win')"><span>📁</span><br>Documents</div>
+    <div class="icon" onclick="handleIconClick('notepad-win')"><span>🖊️</span><br>Notepad</div>
+    <div class="icon" onclick="handleIconClick('calc-win')"><span>🧮</span><br>Calculator</div>
+    <div class="icon" onclick="handleIconClick('paint-win')"><span>🎨</span><br>Paint</div>
+    <div class="icon" onclick="handleIconClick('mine-win')"><span>💣</span><br>Mines</div>
 
     <div class="window" id="profile-win" style="width:250px;">
-        <div class="title-bar"><span>USER_PROFILE</span><button onclick="closeWin('profile-win')">X</button></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('profile-win')"><span>USER_PROFILE</span><button onclick="closeWin('profile-win')">X</button></div>
         <div class="window-body">
             User Name: <input type="text" id="pref-username" placeholder="Admin">
             Avatar Emoji: <input type="text" id="pref-avatar" placeholder="👤">
@@ -175,70 +170,81 @@
     </div>
 
     <div class="window" id="sys-info-win" style="width:280px;">
-        <div class="title-bar"><span>SYSTEM_INFO</span><button onclick="closeWin('sys-info-win')">X</button></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('sys-info-win')"><span>SYSTEM_INFO</span><button onclick="closeWin('sys-info-win')">X</button></div>
         <div class="window-body">
             <div style="display:flex; gap:10px; color:black;">
                 <div style="font-size:40px;">💿</div>
-                <div>
-                    <strong>EduFlow OS Platinum</strong><br>
-                    Version 2026.1<br>
-                    Build: 6.3.9600
-                </div>
+                <div><strong>EduFlow OS Platinum</strong><br> Version 2026.1</div>
             </div>
-            <hr>
             <p style="color:black; font-size:12px;">Registered to: <strong id="info-user">Admin</strong></p>
-            <p style="color:black; font-size:12px;">Processors: Intel(R) Core(TM) i9 Equivalent</p>
-            <p style="color:black; font-size:12px;">Memory: 1024MB RAM</p>
-            <button onclick="triggerBSOD()" style="width:100%; font-size:10px;">Run Stress Test (Fatal)</button>
+            <button onclick="triggerBSOD()" style="width:100%; font-size:10px;">Run Stress Test</button>
         </div>
     </div>
 
     <div class="window" id="task-win" style="width:220px;">
-        <div class="title-bar"><span>TASK_ADD</span><div class="btn-controls"><button onclick="minimizeWin('task-win')">_</button><button onclick="closeWin('task-win')">X</button></div></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('task-win')"><span>TASK_ADD</span><div class="btn-controls"><button onclick="minimizeWin('task-win')">_</button><button onclick="closeWin('task-win')">X</button></div></div>
         <div class="window-body">
             <input type="text" id="taskName" placeholder="Task Name">
-            <select id="taskPriority"><option value="low">Low Priority</option><option value="med">Medium Priority</option><option value="high">High Priority</option></select>
+            <select id="taskPriority"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select>
             <input type="date" id="taskDate">
             <button onclick="addTask()" style="width:100%;">SAVE TASK</button>
-            <div id="save-status" style="font-size: 10px; color: blue; text-align: center; margin-top: 5px;"></div>
         </div>
     </div>
 
     <div class="window" id="view-tasks-win" style="width:320px;">
-        <div class="title-bar"><span>TASK_MANAGER</span><div class="btn-controls"><button onclick="minimizeWin('view-tasks-win')">_</button><button onclick="closeWin('view-tasks-win')">X</button></div></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('view-tasks-win')"><span>TASK_MANAGER</span><div class="btn-controls"><button onclick="minimizeWin('view-tasks-win')">_</button><button onclick="closeWin('view-tasks-win')">X</button></div></div>
         <div class="window-body">
             <div class="tm-tabs">
                 <div class="tm-tab active" id="tab-tasks-btn" onclick="switchTMTab('tasks')">Tasks</div>
-                <div class="tm-tab" id="tab-performance-btn" onclick="switchTMTab('performance')">Performance</div>
-                <div class="tm-tab" id="tab-processes-btn" onclick="switchTMTab('processes')">Processes</div>
+                <div class="tm-tab" id="tab-performance-btn" onclick="switchTMTab('performance')">Perf</div>
+                <div class="tm-tab" id="tab-processes-btn" onclick="switchTMTab('processes')">Proc</div>
+                <div class="tm-tab" id="tab-settings-btn" onclick="switchTMTab('settings')">Settings</div>
             </div>
-            <div id="tm-tab-tasks">
-                <div id="task-view-list" style="height:180px; overflow-y:auto; background:#eee; border:2px inset; padding:5px; margin-bottom:5px;"></div>
-                <button onclick="clearTasks()" style="width:100%; color:red;">CLEAR ALL DATA</button>
-            </div>
+            <div id="tm-tab-tasks"><div id="task-view-list" style="height:150px; overflow-y:auto; background:#eee; border:2px inset; padding:5px;"></div></div>
             <div id="tm-tab-performance" style="display:none;">
-                CPU Usage:
-                <div class="tm-meter-container"><div id="cpu-fill" class="tm-meter-fill"></div><div id="cpu-text" class="tm-meter-text">0%</div></div>
-                Memory (RAM):
-                <div class="tm-meter-container"><div id="ram-fill" class="tm-meter-fill"></div><div id="ram-text" class="tm-meter-text">0MB / 1024MB</div></div>
-                System Uptime: <span id="uptime-text">0s</span>
+                CPU: <div class="tm-meter-container"><div id="cpu-fill" class="tm-meter-fill"></div><div id="cpu-text" class="tm-meter-text">0%</div></div>
+                RAM: <div class="tm-meter-container"><div id="ram-fill" class="tm-meter-fill"></div><div id="ram-text" class="tm-meter-text">0MB</div></div>
+                System Uptime: <div id="uptime-text" style="color:black; font-size:12px;">0s</div>
             </div>
-            <div id="tm-tab-processes" style="display:none;">
-                <div id="process-list" style="height:180px; overflow-y:auto; background:#fff; border:2px inset; padding:5px;"></div>
+            <div id="tm-tab-processes" style="display:none;"><div id="process-list" style="height:150px; overflow-y:auto; color:black; background:white; padding:4px; font-size:11px;"></div></div>
+            <div id="tm-tab-settings" style="display:none; color:black;">
+                <label style="font-size:12px;"><input type="checkbox" id="toggle-click-mode"> 1-Click Open / 2-Click Close</label>
             </div>
         </div>
     </div>
 
-    <div class="window" id="bin-win" style="width:250px;">
-        <div class="title-bar"><span>RECYCLE_BIN</span><div class="btn-controls"><button onclick="minimizeWin('bin-win')">_</button><button onclick="closeWin('bin-win')">X</button></div></div>
+    <div class="window" id="mine-win">
+        <div class="title-bar" ondblclick="handleWinDblClick('mine-win')"><span>MINES</span><div class="btn-controls"><button onclick="minimizeWin('mine-win')">_</button><button onclick="closeWin('mine-win')">X</button></div></div>
         <div class="window-body">
-            <div id="bin-list" style="height:120px; overflow-y:auto; background:#fff; border:2px inset; padding:5px; margin-bottom:5px;"></div>
+            <div id="mine-status" style="margin-bottom:5px;">Mines: 10</div>
+            <div id="mine-grid" class="ms-grid"></div>
+            <button onclick="initMinesweeper()" style="width:100%; margin-top:5px;">New Game</button>
+        </div>
+    </div>
+
+    <div class="window" id="explorer-win" style="width:300px;">
+        <div class="title-bar" ondblclick="handleWinDblClick('explorer-win')"><span>DOCS</span><button onclick="closeWin('explorer-win')">X</button></div>
+        <div class="window-body" id="explorer-body" style="background:white; min-height:100px; display:flex; flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="window" id="bin-win" style="width:250px;">
+        <div class="title-bar" ondblclick="handleWinDblClick('bin-win')"><span>RECYCLE_BIN</span><div class="btn-controls"><button onclick="minimizeWin('bin-win')">_</button><button onclick="closeWin('bin-win')">X</button></div></div>
+        <div class="window-body">
+            <div id="bin-list" style="height:120px; overflow-y:auto; background:#fff; border:2px inset; padding:5px; margin-bottom:5px; color:black;"></div>
             <button onclick="emptyBin()" style="width:100%;">EMPTY BIN</button>
         </div>
     </div>
 
+    <div class="window" id="notepad-win" style="width:300px;">
+        <div class="title-bar" ondblclick="handleWinDblClick('notepad-win')"><span>NOTEPAD</span><button onclick="closeWin('notepad-win')">X</button></div>
+        <div class="window-body">
+            <input type="text" id="note-name" placeholder="file.txt"><textarea id="note-content" style="height:150px;"></textarea>
+            <button onclick="saveNote()" style="width:100%;">SAVE</button>
+        </div>
+    </div>
+
     <div class="window" id="calc-win" style="width:200px;">
-        <div class="title-bar"><span>CALC</span><div class="btn-controls"><button onclick="minimizeWin('calc-win')">_</button><button onclick="closeWin('calc-win')">X</button></div></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('calc-win')"><span>CALC</span><div class="btn-controls"><button onclick="minimizeWin('calc-win')">_</button><button onclick="closeWin('calc-win')">X</button></div></div>
         <div class="window-body">
             <div id="calc-display">0</div>
             <div class="calc-btns">
@@ -251,20 +257,15 @@
     </div>
 
     <div class="window" id="paint-win" style="width:225px;">
-        <div class="title-bar"><span>PAINT</span><div class="btn-controls"><button onclick="minimizeWin('paint-win')">_</button><button onclick="closeWin('paint-win')">X</button></div></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('paint-win')"><span>PAINT</span><div class="btn-controls"><button onclick="minimizeWin('paint-win')">_</button><button onclick="closeWin('paint-win')">X</button></div></div>
         <div class="window-body">
             <canvas id="paint-canvas" width="200" height="150" style="background:white; border:1px solid #000;"></canvas>
             <br><input type="color" id="paint-color"><button onclick="clearPaint()">CLR</button>
         </div>
     </div>
 
-    <div class="window" id="mine-win">
-        <div class="title-bar"><span>MINES</span><div class="btn-controls"><button onclick="minimizeWin('mine-win')">_</button><button onclick="closeWin('mine-win')">X</button></div></div>
-        <div class="window-body"><div id="mine-grid" class="ms-grid"></div></div>
-    </div>
-
     <div class="window" id="term-win" style="width:400px;">
-        <div class="title-bar"><span>CMD.EXE</span><div class="btn-controls"><button onclick="minimizeWin('term-win')">_</button><button onclick="closeWin('term-win')">X</button></div></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('term-win')"><span>CMD.EXE</span><div class="btn-controls"><button onclick="minimizeWin('term-win')">_</button><button onclick="closeWin('term-win')">X</button></div></div>
         <div class="window-body" style="background: black; padding: 5px;">
             <div id="term-out" style="height: 150px; overflow-y: auto; color:#00ff00; font-size:14px;">EduFlow Console [Version 6.3]<br></div>
             <div style="display:flex; color:#00ff00;">C:\&gt;<input type="text" id="term-in" onkeydown="if(event.key==='Enter') runCmd()" style="background:black; color:#00ff00; border:none; outline:none;"></div>
@@ -272,30 +273,26 @@
     </div>
 
     <div class="window" id="run-win" style="width:250px;">
-        <div class="title-bar"><span>RUN</span><button onclick="closeWin('run-win')">X</button></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('run-win')"><span>RUN</span><button onclick="closeWin('run-win')">X</button></div>
         <div class="window-body">
-            Type name of program to launch:<br>
-            <input type="text" id="run-input" placeholder="e.g. calc, paint, mines" onkeydown="if(event.key==='Enter') executeRun()">
+            <input type="text" id="run-input" placeholder="e.g. calc" onkeydown="if(event.key==='Enter') executeRun()">
             <button onclick="executeRun()" style="width:100%;">OK</button>
         </div>
     </div>
 
     <div class="window" id="wp-win" style="width:250px;">
-        <div class="title-bar"><span>THEMES</span><button onclick="closeWin('wp-win')">X</button></div>
+        <div class="title-bar" ondblclick="handleWinDblClick('wp-win')"><span>THEMES</span><button onclick="closeWin('wp-win')">X</button></div>
         <div class="window-body">
             Wallpaper URL:<input type="text" id="wp-url" placeholder="https://image.jpg">
             <button onclick="setCustomWP()" style="width:100%;">APPLY</button>
             <hr><button onclick="toggleDarkMode()" style="width:100%;">DARK MODE</button>
         </div>
     </div>
-
-    <div class="window" id="explorer-win" style="width:300px;"><div class="title-bar"><span>DOCS</span><button onclick="closeWin('explorer-win')">X</button></div><div class="window-body" id="explorer-body" style="background:white; min-height:100px; display:flex; flex-wrap:wrap;"></div></div>
-    <div class="window" id="notepad-win" style="width:300px;"><div class="title-bar"><span>NOTEPAD</span><button onclick="closeWin('notepad-win')">X</button></div><div class="window-body"><input type="text" id="note-name" placeholder="file.txt"><textarea id="note-content" style="height:150px;"></textarea><button onclick="saveNote()" style="width:100%;">SAVE</button></div></div>
 </div>
 
 <div class="taskbar" id="main-taskbar">
     <button onclick="toggleStart()" style="font-weight:bold;">START</button>
-    <button onclick="toggleTaskManager()" style="margin-left:5px;">📋 Task Manager</button>
+    <button onclick="openWin('view-tasks-win')" style="margin-left:5px;">📋 Task Manager</button>
     <div id="minimized-container" style="display:flex; gap:5px; margin-left:10px;"></div>
     <div style="margin-left:auto; border: 2px inset; padding: 2px 10px; background: #eee; color: #000; font-weight: bold; cursor:pointer;" onclick="toggleCalendar()" id="clock-container"><span id="clock">00:00</span></div>
 </div>
@@ -304,20 +301,50 @@
     let files = JSON.parse(localStorage.getItem('sysFiles')) || [];
     let trash = JSON.parse(localStorage.getItem('sysTrash')) || [];
     let tasks = JSON.parse(localStorage.getItem('sysTasks')) || [];
-    let startTime = Date.now();
+    let minimizedWindows = new Set();
     let zIndex = 100;
+    let mineData = [];
+    let gameOver = false;
+    let bootTime = Date.now();
 
-    const startupSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-    const clickSound = new Audio('https://www.soundjay.com/buttons/button-16.mp3');
+    window.onload = runBios;
 
-    // Add sound to all buttons automatically
-    document.addEventListener('click', (e) => {
-        if(e.target.tagName === 'BUTTON') clickSound.play();
-    });
+    // Keyboard Shortcut Logic
+    window.onkeydown = (e) => {
+        if (e.metaKey || e.ctrlKey) {
+            if (e.key === 'r') { e.preventDefault(); openWin('run-win'); }
+            if (e.key === 'd') { e.preventDefault(); showDesktop(); }
+            if (e.key === 'l') { e.preventDefault(); lockSystem(); }
+        }
+        if (e.key === 'Escape') { hideUI(); }
+    };
+
+    function showDesktop() {
+        document.querySelectorAll('.window').forEach(w => {
+            if(w.style.display !== 'none') minimizeWin(w.id);
+        });
+    }
+
+    function lockSystem() {
+        document.getElementById('desktop').style.display = 'none';
+        document.getElementById('main-taskbar').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('login-input').value = "";
+    }
+
+    function handleIconClick(id) {
+        openWin(id);
+    }
+
+    function handleWinDblClick(id) {
+        if(document.getElementById('toggle-click-mode').checked) {
+            closeWin(id);
+        }
+    }
 
     function runBios() {
         const bios = document.getElementById('bios-screen');
-        const logs = ["RESTORING PLATINUM KERNEL v6.3...", "CHECKING VIDEO RAM...", "LOADING PERSISTENT STORAGE...", "TOGGLE ENGINE INITIALIZED...", "READY."];
+        const logs = ["RESTORING PLATINUM KERNEL...", "CHECKING DRIVES...", "LOADING GUI...", "READY."];
         let i = 0; bios.innerHTML = "";
         const interval = setInterval(() => {
             if(i < logs.length) bios.innerHTML += logs[i++] + "<br>";
@@ -327,162 +354,135 @@
 
     function attemptLogin() {
         if(document.getElementById('login-input').value === "1234") {
-            startupSound.play();
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('desktop').style.display = 'block';
             document.getElementById('main-taskbar').style.display = 'flex';
-            loadSettings(); makeDraggable(); updateClock(); updateTaskView(); initMinesweeper(); initPaint(); updatePerformance();
-        } else {
-            document.getElementById('login-error').innerText = "Invalid Access Code";
-        }
+            makeDraggable(); updateClock(); updateTaskView(); initMinesweeper(); initPaint(); updatePerformance(); renderExplorer(); updateBinList();
+        } else { document.getElementById('login-error').innerText = "Invalid Code"; }
     }
 
-    function triggerBSOD() {
-        const bsod = document.createElement('div');
-        bsod.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:#0000AA;color:#fff;z-index:99999;padding:50px;font-family:monospace;font-size:18px;line-height:1.5;";
-        bsod.innerHTML = `
-            <p>*** FATAL ERROR ***</p>
-            <p>A problem has been detected and EduFlow OS has been shut down to prevent damage to your virtual machine.</p>
-            <p>The problem seems to be caused by the following file: KERNEL_PLATINUM.SYS</p>
-            <p>PAGE_FAULT_IN_NONPAGED_AREA</p>
-            <p>If this is the first time you've seen this stop error screen, restart your computer. If this screen appears again, follow these steps:</p>
-            <p>Check to make sure any new hardware or software is properly installed.</p>
-            <p>Technical Information:<br>*** STOP: 0x00000050 (0xFD3094C2, 0x00000001, 0xFBFE7617, 0x00000000)</p>
-            <p style="margin-top:50px;">Press any key to restart...</p>
-        `;
-        document.body.appendChild(bsod);
-        window.addEventListener('keydown', () => location.reload());
+    function openWin(id) {
+        const win = document.getElementById(id);
+        if(!win) return;
+        win.style.display = 'block';
+        win.style.zIndex = ++zIndex;
+        minimizedWindows.delete(id); 
+        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+        win.classList.add('active');
+        updateTaskbar();
     }
 
-    function toggleTaskManager() {
-        const win = document.getElementById('view-tasks-win');
-        if (win.style.display === 'block' && parseInt(win.style.zIndex) === zIndex) {
-            closeWin('view-tasks-win');
-        } else {
-            openWin('view-tasks-win');
-        }
+    function closeWin(id) { 
+        document.getElementById(id).style.display = 'none'; 
+        minimizedWindows.delete(id);
+        updateTaskbar();
+        updateProcessList();
     }
 
-    function saveProfile() {
-        const user = document.getElementById('pref-username').value || "Admin";
-        const avatar = document.getElementById('pref-avatar').value || "👤";
-        localStorage.setItem('sysUser', user);
-        localStorage.setItem('sysAvatar', avatar);
-        applyProfile(user, avatar);
-        closeWin('profile-win');
+    function minimizeWin(id) { 
+        document.getElementById(id).style.display = 'none'; 
+        minimizedWindows.add(id);
+        updateTaskbar(); 
     }
 
-    function applyProfile(user, avatar) {
-        document.getElementById('login-username').innerText = user;
-        document.getElementById('login-avatar').innerText = avatar;
-        document.getElementById('start-username').innerText = user;
-        document.getElementById('start-avatar').innerText = avatar;
-        document.getElementById('info-user').innerText = user;
+    function updateTaskbar() {
+        const container = document.getElementById('minimized-container');
+        container.innerHTML = "";
+        minimizedWindows.forEach(id => {
+            const win = document.getElementById(id);
+            let tab = document.createElement('div');
+            tab.className = 'minimized-tab';
+            tab.innerText = win.querySelector('.title-bar span').innerText;
+            tab.onclick = () => openWin(id);
+            container.appendChild(tab);
+        });
     }
 
     function switchTMTab(tab) {
-        document.getElementById('tm-tab-tasks').style.display = tab === 'tasks' ? 'block' : 'none';
-        document.getElementById('tm-tab-performance').style.display = tab === 'performance' ? 'block' : 'none';
-        document.getElementById('tm-tab-processes').style.display = tab === 'processes' ? 'block' : 'none';
-        document.querySelectorAll('.tm-tab').forEach(t => t.classList.remove('active'));
-        document.getElementById(`tab-${tab}-btn`).classList.add('active');
+        const tabs = ['tasks', 'performance', 'processes', 'settings'];
+        tabs.forEach(t => {
+            document.getElementById(`tm-tab-${t}`).style.display = (t === tab) ? 'block' : 'none';
+            document.getElementById(`tab-${t}-btn`).classList.toggle('active', t === tab);
+        });
         if(tab === 'processes') updateProcessList();
-        if(tab === 'tasks') updateTaskView();
-    }
-
-    function addTask() {
-        const name = document.getElementById('taskName').value;
-        if(!name) return;
-        tasks.push({ name: name, prio: document.getElementById('taskPriority').value, date: document.getElementById('taskDate').value || "No Date", done: false });
-        saveAll(); updateTaskView(); document.getElementById('taskName').value = "";
-    }
-
-    function updateTaskView() {
-        const list = document.getElementById('task-view-list');
-        list.innerHTML = tasks.map((t, i) => `
-            <div class="task-item ${t.done?'completed':''}">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" ${t.done?'checked':''} onclick="toggleTask(${i})">
-                    <strong>${t.name}</strong>
-                </div>
-                <div style="font-size:10px; margin-left:25px;">[${t.prio}] Due: ${t.date} <span onclick="deleteTask(${i})" style="color:red; cursor:pointer; margin-left:10px;">(Remove)</span></div>
-            </div>
-        `).join('') || "No tasks.";
-    }
-
-    function toggleTask(i) { tasks[i].done = !tasks[i].done; saveAll(); updateTaskView(); }
-    function deleteTask(i) { trash.push({name: tasks[i].name, type:'task', data: tasks[i]}); tasks.splice(i,1); saveAll(); updateTaskView(); updateBinList(); }
-    function clearTasks() { tasks = []; saveAll(); updateTaskView(); }
-
-    function updatePerformance() {
-        setInterval(() => {
-            const cpu = Math.floor(Math.random() * 15) + 5;
-            const ram = Math.floor(Math.random() * 50) + 200;
-            document.getElementById('cpu-fill').style.width = cpu + "%";
-            document.getElementById('cpu-text').innerText = cpu + "%";
-            document.getElementById('ram-fill').style.width = (ram/1024*100) + "%";
-            document.getElementById('ram-text').innerText = ram + "MB / 1024MB";
-            document.getElementById('uptime-text').innerText = Math.floor((Date.now() - startTime)/1000) + "s";
-        }, 1000);
     }
 
     function updateProcessList() {
         const list = document.getElementById('process-list');
+        list.innerHTML = "<strong>Active Processes:</strong><br>";
         const windows = document.querySelectorAll('.window');
-        let html = '<table style="width:100%; font-size:12px; border-collapse:collapse; color:black;">';
-        html += '<tr style="background:#ddd;"><td>Image Name</td><td>Status</td><td>Action</td></tr>';
-        windows.forEach(win => {
-            if(win.style.display === 'block') {
-                const name = win.querySelector('.title-bar span').innerText;
-                html += `<tr><td>${name}</td><td style="color:green;">Running</td><td><button onclick="closeWin('${win.id}'); updateProcessList();">End Task</button></td></tr>`;
+        let count = 0;
+        windows.forEach(w => {
+            if (w.style.display !== 'none' || minimizedWindows.has(w.id)) {
+                const title = w.querySelector('.title-bar span').innerText;
+                const processRow = document.createElement('div');
+                processRow.style.marginBottom = '5px';
+                processRow.style.borderBottom = '1px solid #ddd';
+                processRow.style.padding = '2px';
+                processRow.innerHTML = `${title} <button class="kill-btn" onclick="closeWin('${w.id}')">KILL</button>`;
+                list.appendChild(processRow);
+                count++;
             }
         });
-        html += '</table>';
-        list.innerHTML = html;
+        if (count === 0) list.innerHTML += "No active applications.";
     }
 
-    function loadSettings() {
-        const wp = localStorage.getItem('sysWP');
-        if(wp) document.body.style.backgroundImage = `url('${wp}')`;
-        if(localStorage.getItem('sysDarkMode') === 'true') document.body.classList.add('dark-mode');
-        const user = localStorage.getItem('sysUser') || "Admin";
-        const avatar = localStorage.getItem('sysAvatar') || "👤";
-        applyProfile(user, avatar);
+    function updatePerformance() {
+        setInterval(() => {
+            let cpu = Math.floor(Math.random()*15)+2;
+            let ram = Math.floor(Math.random()*50)+210;
+            document.getElementById('cpu-fill').style.width = cpu+"%";
+            document.getElementById('cpu-text').innerText = cpu+"%";
+            document.getElementById('ram-fill').style.width = (ram/1024*100)+"%";
+            document.getElementById('ram-text').innerText = ram + " MB";
+            document.getElementById('uptime-text').innerText = Math.floor((Date.now() - bootTime)/1000) + "s";
+        }, 1500);
     }
 
-    function executeRun() {
-        const val = document.getElementById('run-input').value.toLowerCase();
-        const map = { 'calc': 'calc-win', 'paint': 'paint-win', 'mines': 'mine-win', 'docs': 'explorer-win', 'notes': 'notepad-win', 'term': 'term-win', 'profile': 'profile-win', 'info': 'sys-info-win' };
-        if(map[val]) openWin(map[val]);
-        else alert("Program not found.");
-        closeWin('run-win');
+    function makeDraggable() {
+        document.querySelectorAll(".window").forEach(win => {
+            const title = win.querySelector(".title-bar");
+            title.onmousedown = (e) => {
+                if(e.target.tagName === 'BUTTON') return;
+                openWin(win.id);
+                let x = e.clientX - win.offsetLeft, y = e.clientY - win.offsetTop;
+                document.onmousemove = (e) => { win.style.left = (e.clientX - x) + 'px'; win.style.top = (e.clientY - y) + 'px'; };
+                document.onmouseup = () => { document.onmousemove = null; };
+            };
+        });
     }
 
-    function toggleCalendar() {
-        const cal = document.getElementById('calendar-popup');
-        cal.style.display = cal.style.display === 'block' ? 'none' : 'block';
-        const d = new Date();
-        document.getElementById('cal-header').innerText = d.toLocaleString('default', { month: 'long' }) + " " + d.getFullYear();
-        document.getElementById('cal-date').innerText = d.getDate();
-        document.getElementById('cal-full').innerText = d.toDateString();
+    function initMinesweeper() {
+        const g = document.getElementById('mine-grid'); g.innerHTML = "";
+        mineData = []; gameOver = false;
+        let bombs = new Set();
+        while(bombs.size < 10) bombs.add(Math.floor(Math.random() * 64));
+        for(let i=0; i<64; i++){
+            mineData.push({ isBomb: bombs.has(i), revealed: false });
+            let c = document.createElement('div'); c.className="ms-cell";
+            c.id = "mc-"+i;
+            c.onclick = () => revealMine(i);
+            g.appendChild(c);
+        }
+        document.getElementById('mine-status').innerText = "Mines: 10";
     }
-
-    function updateBinList() {
-        const list = document.getElementById('bin-list');
-        list.innerHTML = trash.map((f, i) => `<div>🗑️ ${f.name} <button onclick="restoreFromBin(${i})">Restore</button></div>`).join('') || "Empty";
+    function revealMine(i) {
+        if(gameOver || mineData[i].revealed) return;
+        const cell = document.getElementById("mc-"+i);
+        mineData[i].revealed = true;
+        if(mineData[i].isBomb) {
+            cell.classList.add('bomb'); cell.innerText = "💣"; gameOver = true;
+            document.getElementById('mine-status').innerText = "GAME OVER";
+            mineData.forEach((m, idx) => { if(m.isBomb) document.getElementById("mc-"+idx).innerText = "💣"; });
+        } else {
+            let count = 0, r = Math.floor(i/8), c = i%8;
+            for(let x=-1; x<=1; x++) for(let y=-1; y<=1; y++) {
+                let nr = r+x, nc = c+y;
+                if(nr>=0 && nr<8 && nc>=0 && nc<8 && mineData[nr*8+nc].isBomb) count++;
+            }
+            cell.classList.add('revealed'); cell.innerText = count || "";
+        }
     }
-    function restoreFromBin(i) {
-        if(trash[i].type === 'task') tasks.push(trash[i].data);
-        trash.splice(i, 1); saveAll(); updateTaskView(); updateBinList();
-    }
-    function emptyBin() { trash = []; saveAll(); updateBinList(); }
-
-    let curV = "0", pV = null, opr = null, rst = false;
-    function calcNum(n) { if(curV === "0" || rst) { curV = n; rst = false; } else { curV += n; } document.getElementById('calc-display').innerText = curV; }
-    function calcOp(o) { pV = curV; opr = o; rst = true; }
-    function calcRes() { if(!opr) return; let a=parseFloat(pV), b=parseFloat(curV), res=0; if(opr==='+')res=a+b; if(opr==='-')res=a-b; if(opr==='*')res=a*b; if(opr==='/')res=a/b; curV=String(res); opr=null; rst=true; document.getElementById('calc-display').innerText = curV; }
-    function calcClear() { curV="0"; pV=null; opr=null; rst=false; document.getElementById('calc-display').innerText="0"; }
-
     function saveNote() {
         const name = document.getElementById('note-name').value || "note.txt";
         files.push({ name, content: document.getElementById('note-content').value });
@@ -490,122 +490,43 @@
     }
     function renderExplorer() {
         const body = document.getElementById('explorer-body');
-        body.innerHTML = files.map((f, i) => `<div style="margin:10px; text-align:center; cursor:pointer; color:black;" onclick="openFile(${i})">📄<br><span style="font-size:10px;">${f.name}</span></div>`).join('');
+        body.innerHTML = files.map((f, i) => `<div style="margin:10px; text-align:center; color:black; width:50px;">📄<br><span style="font-size:10px;">${f.name}</span><br><button onclick="deleteFile(${i})" style="font-size:8px;">Del</button></div>`).join('');
     }
-    function openFile(i) {
-        openWin('notepad-win');
-        document.getElementById('note-name').value = files[i].name;
-        document.getElementById('note-content').value = files[i].content;
+    function deleteFile(i) {
+        trash.push({name: files[i].name, type:'file', data: files[i]});
+        files.splice(i,1); saveAll(); renderExplorer(); updateBinList();
     }
-
-    function initPaint() {
-        const canvas = document.getElementById('paint-canvas'); const ctx = canvas.getContext('2d'); let draw = false;
-        canvas.onmousedown = (e) => { draw = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
-        canvas.onmouseup = () => draw = false;
-        canvas.onmousemove = (e) => { if(draw) { ctx.strokeStyle = document.getElementById('paint-color').value; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } };
+    function updateBinList() {
+        const list = document.getElementById('bin-list');
+        list.innerHTML = trash.map((f, i) => `<div>🗑️ ${f.name} <button onclick="restoreFromBin(${i})">Restore</button></div>`).join('') || "Empty";
     }
+    function restoreFromBin(i) {
+        if(trash[i].type === 'file') files.push(trash[i].data);
+        trash.splice(i, 1); saveAll(); renderExplorer(); updateBinList();
+    }
+    function emptyBin() { trash = []; saveAll(); updateBinList(); }
+    function saveAll() { localStorage.setItem('sysFiles', JSON.stringify(files)); localStorage.setItem('sysTrash', JSON.stringify(trash)); localStorage.setItem('sysTasks', JSON.stringify(tasks)); }
+    let curV = "0", pV = null, opr = null, rst = false;
+    function calcNum(n) { if(curV === "0" || rst) { curV = n; rst = false; } else { curV += n; } document.getElementById('calc-display').innerText = curV; }
+    function calcOp(o) { pV = curV; opr = o; rst = true; }
+    function calcRes() { if(!opr) return; let a=parseFloat(pV), b=parseFloat(curV), res=0; if(opr==='+')res=a+b; if(opr==='-')res=a-b; if(opr==='*')res=a*b; if(opr==='/')res=a/b; curV=String(res); opr=null; rst=true; document.getElementById('calc-display').innerText = curV; }
+    function calcClear() { curV="0"; pV=null; opr=null; rst=false; document.getElementById('calc-display').innerText="0"; }
+    function toggleStart() { const m = document.getElementById('start-menu'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
+    function hideUI() { document.getElementById('start-menu').style.display = 'none'; document.getElementById('calendar-popup').style.display = 'none'; }
+    function updateClock() { setInterval(() => { const d = new Date(); document.getElementById('clock').innerText = d.getHours().toString().padStart(2,'0')+":"+d.getMinutes().toString().padStart(2,'0'); }, 1000); }
+    function initPaint() { const c = document.getElementById('paint-canvas'); const ctx = c.getContext('2d'); let d = false; c.onmousedown=()=>{d=true;ctx.beginPath();}; c.onmouseup=()=>d=false; c.onmousemove=(e)=>{if(d){ctx.strokeStyle=document.getElementById('paint-color').value;ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke();}};}
     function clearPaint() { document.getElementById('paint-canvas').getContext('2d').clearRect(0,0,200,150); }
-    function initMinesweeper() {
-        const g = document.getElementById('mine-grid'); g.innerHTML = "";
-        for(let i=0; i<64; i++){
-            let c = document.createElement('div'); c.className="ms-cell";
-            c.onclick = function(){ this.style.background="#fff"; this.innerText="0"; };
-            g.appendChild(c);
-        }
-    }
-    function runCmd() {
-        const i = document.getElementById('term-in'), o = document.getElementById('term-out');
-        o.innerHTML += `<br>C:\&gt; ${i.value}`;
-        if(i.value === 'cls') o.innerHTML = "";
-        if(i.value === 'ver') o.innerHTML += "<br>EduFlow Platinum Edition [Version 6.3.9600]";
-        i.value = ""; o.scrollTop = o.scrollHeight;
-    }
-
-    function openWin(id) { 
-        const win = document.getElementById(id);
-        win.style.display = 'block'; 
-        win.style.zIndex = ++zIndex; 
-        
-        // Highlight active window
-        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
-        win.classList.add('active');
-
-        if(id==='explorer-win') renderExplorer(); 
-        removeTab(id); 
-    }
-    
-    function closeWin(id) { document.getElementById(id).style.display = 'none'; removeTab(id); }
-    function minimizeWin(id) { document.getElementById(id).style.display = 'none'; addTab(id); }
-    
-    function addTab(id) {
-        if(document.getElementById('tab-'+id)) return;
-        const tab = document.createElement('div');
-        tab.id = 'tab-'+id; tab.className='minimized-tab'; tab.innerText = id.split('-')[0].toUpperCase();
-        tab.onclick = () => { openWin(id); };
-        document.getElementById('minimized-container').appendChild(tab);
-    }
-    
-    function removeTab(id) { const t = document.getElementById('tab-'+id); if(t) t.remove(); }
-    function toggleStart() { const m = document.getElementById('start-menu'); m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }
-    function hideUI() { 
-        document.getElementById('start-menu').style.display='none'; 
-        document.getElementById('context-menu').style.display='none';
-        document.getElementById('calendar-popup').style.display='none';
-    }
-    
-    function saveAll() { 
-        localStorage.setItem('sysFiles', JSON.stringify(files)); 
-        localStorage.setItem('sysTasks', JSON.stringify(tasks)); 
-        localStorage.setItem('sysTrash', JSON.stringify(trash)); 
-    }
-    
-    function setCustomWP() { 
-        const url = document.getElementById('wp-url').value;
-        document.body.style.backgroundImage = `url('${url}')`; 
-        localStorage.setItem('sysWP', url);
-    }
-    
-    function toggleDarkMode() { 
-        const isDark = document.body.classList.toggle('dark-mode'); 
-        localStorage.setItem('sysDarkMode', isDark);
-    }
-    
+    function runCmd() { const i = document.getElementById('term-in'), o = document.getElementById('term-out'); o.innerHTML += `<br>C:\&gt; ${i.value}`; i.value = ""; o.scrollTop = o.scrollHeight; }
+    function updateTaskView() { const list = document.getElementById('task-view-list'); list.innerHTML = tasks.map((t, i) => `<div>${t.name}</div>`).join('') || "No tasks."; }
+    function saveProfile() { document.getElementById('start-username').innerText = document.getElementById('pref-username').value; }
+    function setCustomWP() { document.body.style.backgroundImage = `url(${document.getElementById('wp-url').value})`; }
+    function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
     function restartSystem() { location.reload(); }
-    
-    function updateClock() { 
-        setInterval(() => { 
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); 
-            document.getElementById('clock-container').title = now.toDateString();
-        }, 1000); 
-    }
-    
-    function showContextMenu(e) { 
-        e.preventDefault(); 
-        const m = document.getElementById('context-menu'); 
-        m.style.display='block'; 
-        m.style.left=e.pageX+'px'; 
-        m.style.top=e.pageY+'px'; 
-    }
-    
-    function makeDraggable() {
-        document.querySelectorAll('.window').forEach(win => {
-            const tb = win.querySelector('.title-bar');
-            tb.onmousedown = (e) => { 
-                zIndex++;
-                win.style.zIndex = zIndex; 
-                document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
-                win.classList.add('active');
-                
-                let ox = e.clientX - win.offsetLeft, oy = e.clientY - win.offsetTop;
-                document.onmousemove = (e) => { win.style.left = (e.clientX-ox)+'px'; win.style.top = (e.clientY-oy)+'px'; };
-                document.onmouseup = () => document.onmousemove = null;
-            };
-        });
-    }
-
-    runBios();
+    function triggerBSOD() { document.body.style.background = "blue"; document.body.innerHTML = ""; }
+    function toggleCalendar() { const c = document.getElementById('calendar-popup'); c.style.display = c.style.display === 'block' ? 'none' : 'block'; }
+    function showContextMenu(e) { e.preventDefault(); const m = document.getElementById('context-menu'); m.style.display = 'block'; m.style.left = e.clientX+'px'; m.style.top = e.clientY+'px'; }
+    function executeRun() { openWin(document.getElementById('run-input').value + '-win'); }
+    function addTask() { tasks.push({name: document.getElementById('taskName').value}); saveAll(); updateTaskView(); }
 </script>
 </body>
 </html>
-
